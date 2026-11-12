@@ -34,7 +34,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--acb);pad
 .res{margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
 .res.ok{display:block;background:var(--okb);color:var(--ok)}
 .res.er{display:block;background:var(--erb);color:var(--er)}
-.sol{display:none;margin-top:8px;padding:10px;border-left:3px solid var(--ac);background:var(--acb);border-radius:6px}
+.sol{overflow-wrap:anywhere;line-height:1.8;display:none;margin-top:8px;padding:10px;border-left:3px solid var(--ac);background:var(--acb);border-radius:6px}
 .sol.show{display:block}
 .out{margin-top:10px;display:grid;gap:4px}
 .out div{display:flex;gap:8px;flex-wrap:wrap}
@@ -128,6 +128,41 @@ const E=[
 ['IEEE 754','Tìm giá trị của <code>0 01111110 10000000000000000000000</code>.','0.75','S = 0. E = 126 nên số mũ = −1. 1,1 × 2⁻¹ = 0,11 = 0,75.'],
 ['IEEE 754','Tìm giá trị của <code>1 10000010 11010000000000000000000</code>.','-14.5','S = 1. E = 130 nên số mũ = 3. 1,1101 × 2³ = 1110,1 = 14,5. Kết quả −14,5.']
 ];
+/* Lời giải chi tiết (tự sinh các bước) */
+const SUB={2:'₂',8:'₈',10:'₁₀',16:'₁₆'},sp=n=>(n<0?'⁻':'')+String(Math.abs(n)).replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]),cm=s=>String(s).replace('.',',');
+function expand(s,b){s=s.toUpperCase().replace(',','.');const[i,f='']=s.split('.'),t=[],v=[];
+[...i].forEach((c,k)=>{const p=i.length-1-k,d=D.indexOf(c);t.push(`${d}×${b}${sp(p)}`);v.push(d*b**p)});
+[...f].forEach((c,k)=>{const p=-(k+1),d=D.indexOf(c);t.push(`${d}×${b}${sp(p)}`);v.push(d*b**p)});
+return{t:t.join(' + '),v:v.map(cm).join(' + '),r:v.reduce((a,c)=>a+c,0)}}
+const b2d=(s,b)=>{const x=expand(s,b);return `<b>Công thức:</b> mỗi chữ số nhân với ${b} mũ vị trí của nó. Phần nguyên đếm vị trí từ phải sang trái, bắt đầu từ 0. Phần thập phân đếm từ trái sang phải, bắt đầu từ −1.${b==16?' (A=10, B=11, C=12, D=13, E=14, F=15)':''}<br><b>Làm:</b><br>(${s})${SUB[b]} = ${x.t}<br>= ${x.v}<br>= <b>${cm(x.r)}</b>`};
+const d2b=x=>{const ip=Math.floor(x);let f=x-ip,bi='0',bf='',h='<b>Công thức:</b> phần nguyên chia 2 lấy dư (đọc từ dưới lên). Phần thập phân nhân 2 lấy phần nguyên (đọc từ trên xuống).<br>';
+if(ip>0){bi='';h+='<b>Phần nguyên:</b><br>';let n=ip;while(n>0){h+=`${n} : 2 = ${Math.floor(n/2)} dư ${n%2}<br>`;bi=(n%2)+bi;n=Math.floor(n/2)}h+=`Đọc dư từ dưới lên: ${ip} = (${bi})₂<br>`}
+if(f>0){h+='<b>Phần thập phân:</b><br>';let k=0;while(f>0&&k<12){const y=f*2,d=Math.floor(y);h+=`${cm(f)} × 2 = ${cm(y)} → lấy ${d}<br>`;bf+=d;f=y-d;k++}h+=`Đọc từ trên xuống: (0,${bf})₂<br>`}
+return h+`<b>Kết quả:</b> (${cm(x)})₁₀ = (${bi}${bf?','+bf:''})₂`};
+const grp=(s,k)=>{const nm=k==4?'hệ 16':'hệ 8',p=s.padStart(Math.ceil(s.length/k)*k,'0'),g=p.match(new RegExp('.{'+k+'}','g'));
+return `<b>Công thức:</b> nhóm ${k} bit từ phải sang trái (thiếu thì bù số 0 vào bên trái), mỗi nhóm ứng với 1 chữ số của ${nm}.<br><b>Làm:</b> (${s})₂ = ${g.join(' ')}<br>${g.map(x=>`${x} = ${parseInt(x,2).toString(16).toUpperCase()}`).join('<br>')}<br><b>Kết quả:</b> (${s})₂ = (${g.map(x=>parseInt(x,2).toString(16).toUpperCase()).join('')})${SUB[k==4?16:8]}<br>Kiểm tra: ${P(s,2)} thập phân`};
+const mul=(a,b)=>{const fa=(a.split(',')[1]||'').length,fb=(b.split(',')[1]||'').length,A=a.replace(',',''),B=b.replace(',','');
+let h=`<b>Công thức:</b> bỏ dấu phẩy rồi nhân như số nguyên (mỗi bit 1 của số nhân cho một dòng, dịch trái theo vị trí bit), cộng các dòng lại, cuối cùng đặt dấu phẩy cách phải bằng tổng số chữ số thập phân của hai số.<br><b>Làm:</b><br>Bỏ dấu phẩy: ${A} × ${B}<br>`;const ps=[];
+[...B].reverse().forEach((c,k)=>{if(c=='1'){ps.push(A+'0'.repeat(k));h+=`Bit thứ ${k} của ${B} là 1 → ${A}${k?' thêm '+k+' số 0':''} = ${A+'0'.repeat(k)}<br>`}});
+const sum=ps.reduce((s,p)=>s+parseInt(p,2),0);h+=`Cộng: ${ps.join(' + ')} = ${ps.map(p=>parseInt(p,2)).join(' + ')} = ${sum} = (${sum.toString(2)})₂<br>`;
+let r=sum.toString(2);const fl=fa+fb;if(fl){r=r.padStart(fl+1,'0');r=r.slice(0,-fl)+','+r.slice(-fl)}
+return h+`Số chữ số thập phân: ${fa} + ${fb} = ${fl} → đặt dấu phẩy cách phải ${fl} vị trí<br><b>Kết quả:</b> (${r})₂<br>Kiểm tra: ${cm(P(a,2))} × ${cm(P(b,2))} = ${cm(P(a,2)*P(b,2))}`};
+const div=(a,d,dec)=>{const dn=parseInt(d,2);let cur=0,q='',h=`<b>Công thức:</b> chia tay như hệ thập phân. Mỗi lần hạ 1 bit xuống: nếu số đang xét ≥ số chia thì thương ghi 1 và lấy số đó trừ số chia, ngược lại thương ghi 0.<br><b>Làm:</b> ${a} ÷ ${d} (số chia = ${dn})<br>`;
+[...a].forEach(c=>{cur=cur*2+ +c;const ge=cur>=dn;h+=`Hạ ${c}: xét (${cur.toString(2)})₂ = ${cur} ${ge?'≥':'<'} ${dn} → thương ${ge?1:0}${ge?`, dư ${cur} − ${dn} = ${cur-dn}`:`, giữ lại ${cur}`}<br>`;if(ge)cur-=dn;q+=ge?1:0});
+const qi=q.replace(/^0+(?=.)/,'');h+=`Thương nguyên: (${qi})₂, số dư: (${cur.toString(2)})₂ = ${cur}<br>`;let f='';
+if(dec&&cur){h+='Còn dư nên đặt dấu phẩy vào thương và hạ thêm số 0:<br>';let k=0;while(cur&&k<8){cur*=2;const ge=cur>=dn;h+=`Hạ 0: ${cur} ${ge?'≥':'<'} ${dn} → thương ${ge?1:0}${ge?`, dư ${cur-dn}`:`, giữ lại ${cur}`}<br>`;if(ge)cur-=dn;f+=ge?1:0;k++}}
+return h+`<b>Kết quả:</b> (${qi}${f?','+f.replace(/0+$/,''):''})₂<br>Kiểm tra: ${P(a,2)} ÷ ${dn} = ${cm(P(a,2)/dn)}`};
+const IF='<b>Công thức IEEE 754 (32 bit):</b> X = (−1)<sup>S</sup> × 1,M × 2<sup>E−127</sup>. S: 1 bit dấu (0 dương, 1 âm). E: 8 bit, bằng số mũ + 127. M: 23 bit phần sau dấu phẩy của 1,M.<br>';
+const enc=x=>{const ab=Math.abs(x),bin=F(ab,2),[ip,fp='']=bin.split('.');let n,mant;if(ab>=1){n=ip.length-1;mant=ip.slice(1)+fp}else{const k=fp.indexOf('1');n=-(k+1);mant=fp.slice(k+1)}
+const E=n+127,Eb=E.toString(2).padStart(8,'0'),M=mant.padEnd(23,'0');
+return IF+`<b>Bước 1 — Dấu:</b> ${x<0?'số âm nên S = 1':'số dương nên S = 0'}.<br><b>Bước 2 — Đổi ${cm(ab)} sang nhị phân:</b><br>${d2b(ab)}<br><b>Bước 3 — Chuẩn hóa:</b> (${bin})₂ = 1,${mant||'0'} × 2${sp(n)} (dời dấu phẩy sang ${n>=0?'trái':'phải'} ${Math.abs(n)} vị trí nên số mũ = ${n}).<br><b>Bước 4 — Tính E:</b> E = ${n} + 127 = ${E}, đổi sang nhị phân (chia 2 lấy dư) = ${Eb}.<br><b>Bước 5 — Lấy M:</b> M = ${mant||'0'}, bù ${23-mant.length} số 0 bên phải cho đủ 23 bit.<br><b>Kết quả:</b> <code>${x<0?1:0} ${Eb} ${M}</code>`};
+const dec=bits=>{const s=bits.replace(/\s/g,''),S=s[0],E=s.slice(1,9),M=s.slice(9),e=parseInt(E,2),n=e-127,ex=expand(E,2),mant=M.replace(/0+$/,'');
+let bin;if(n>=0){const all='1'+mant,ip=all.slice(0,n+1).padEnd(n+1,'0'),fp=all.slice(n+1);bin=ip+(fp?','+fp:'')}else bin='0,'+'0'.repeat(-n-1)+'1'+mant;const x=expand(bin,2);
+return IF+`<b>Làm:</b> tách chuỗi: S = ${S}, E = ${E}, M = ${M}<br><b>Bước 1 — Dấu:</b> S = ${S} nên ${S=='1'?'số âm':'số dương'}.<br><b>Bước 2 — Tính E:</b> (${E})₂ = ${ex.t} = ${e}. Số mũ = ${e} − 127 = ${n}.<br><b>Bước 3 — Ghép 1,M:</b> 1,${mant||'0'} (bỏ các số 0 thừa bên phải). Vậy X = ${S=='1'?'−':''}1,${mant||'0'} × 2${sp(n)}.<br><b>Bước 4 — Dời dấu phẩy:</b> số mũ ${n} nên dời sang ${n>=0?'phải':'trái'} ${Math.abs(n)} vị trí (thiếu thì bù số 0): (${bin})₂.<br><b>Bước 5 — Đổi sang thập phân:</b><br>(${bin})₂ = ${x.t}<br>= ${x.v}<br>= ${cm(x.r)}<br><b>Kết quả:</b> X = ${S=='1'?'−':''}${cm(x.r)}`};
+const z=n=>'0'.repeat(n),G=[()=>b2d('100111',2),()=>b2d('11001011',2),()=>b2d('1011,011',2),()=>d2b(93),()=>d2b(0.375),()=>d2b(18.625),()=>grp('10111101',4),()=>grp('10111101',3),()=>b2d('2F5',16),()=>b2d('365',8),
+()=>mul('1101','101'),()=>mul('1110','111'),()=>mul('11,01','1,1'),()=>mul('101,1','10,1'),()=>div('101101','101',0),()=>div('11111','100',1),()=>div('1001','11',0),()=>div('1111','110',1),
+()=>enc(20.75),()=>enc(-0.375),()=>enc(100.5),()=>dec('1 10000101 011'+z(20)),()=>dec('0 01111110 1'+z(22)),()=>dec('1 10000010 1101'+z(19))];
+E.forEach((e,i)=>{try{e[3]=G[i]()}catch(_){}});
 const N=s=>{s=String(s).toUpperCase().replace(/\s+/g,'').replace(',','.').replace('−','-');
 if(s.length<=20){s=s.replace(/^(-?)0+(?=\d)/,'$1');if(s.includes('.'))s=s.replace(/0+$/,'').replace(/\.$/,'')}return s};
 const cats=['Tất cả',...new Set(E.map(e=>e[0]))];let cur='Tất cả';const done={};
