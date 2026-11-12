@@ -77,6 +77,9 @@ body.sp main{max-width:1400px}
 .pw{position:relative;flex:1;min-height:0;border-radius:10px;border:1px solid var(--bd);background-color:var(--card);background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:24px 24px;overflow:hidden}
 .pw canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 #tx{flex:1;min-height:0;width:100%;resize:none;font:15px/1.6 ui-monospace,Menlo,Consolas,monospace;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.sg{font-size:.85rem;background:var(--acb);color:var(--tx);border-radius:8px;padding:6px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sg span{color:var(--mu);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem}
+.sg button{padding:2px 8px;font-size:.8rem}
 .dockt{touch-action:none}
 </style>
 </head>
@@ -99,7 +102,9 @@ body.sp main{max-width:1400px}
 <select id="psz"><option value="2">Mảnh</option><option value="4" selected>Vừa</option><option value="8">Đậm</option></select>
 <button id="per">Tẩy</button><button id="pun">Hoàn tác</button><button id="pcl">Xóa hết</button></div>
 <div class="pw" id="pw"><canvas id="cv"></canvas></div>
-<textarea id="tx" hidden placeholder="Gõ nháp ở đây..."></textarea>
+<textarea id="tx" hidden placeholder="Gõ nháp ở đây. Thử gõ: 1+5=  hoặc  1011b+110b="></textarea>
+<div class="pt" id="tt" hidden><span style="font-size:.85rem">💡 Gõ phép tính rồi dấu “=” để nhận gợi ý. Cơ số:</span><select id="pbase"><option value="10">Thập phân</option><option value="2">Nhị phân</option><option value="8">Bát phân</option><option value="16">Hex</option></select></div>
+<div class="sg" id="sg" hidden></div>
 </aside></div>
 </section>
 
@@ -219,6 +224,60 @@ const z=n=>'0'.repeat(n),G=[()=>b2d('100111',2),()=>b2d('11001011',2),()=>b2d('1
 ()=>mul('1101','101'),()=>mul('1110','111'),()=>mul('11,01','1,1'),()=>mul('101,1','10,1'),()=>div('101101','101',0),()=>div('11111','100',1),()=>div('1001','11',0),()=>div('1111','110',1),
 ()=>enc(20.75),()=>enc(-0.375),()=>enc(100.5),()=>dec('1 10000101 011'+z(20)),()=>dec('0 01111110 1'+z(22)),()=>dec('1 10000010 1101'+z(19))];
 E.forEach((e,i)=>{try{e[3]=G[i]()}catch(_){}});
+(()=>{
+const Q=(c,q,a,s)=>E.push([c,q,String(a),s]),C=s=>`<code>${s}</code>`,iv=(s,b=2)=>parseInt(s,b),strip=s=>s.replace(/^0+(?=.)/,'');
+const bits32=x=>{const dv=new DataView(new ArrayBuffer(4));dv.setFloat32(0,x);return dv.getUint32(0).toString(2).padStart(32,'0')};
+const cp=s=>((iv([...s].map(x=>1-x).join(''))+1)%(2**s.length)).toString(2).padStart(s.length,'0');
+function addS(a,b){const n=Math.max(a.length,b.length),A=a.padStart(n,'0'),B=b.padStart(n,'0');let c=0,r='',h=`<b>Quy tắc:</b> cộng từ phải sang trái. 0+0=0; 0+1=1; 1+1=10 (ghi 0, nhớ 1). Nhớ của cột trước cộng thêm vào cột sau.<br><b>Làm:</b> ${a} + ${b}<br>`;
+for(let i=n-1;i>=0;i--){const s=+A[i]+ +B[i]+c;h+=`${A[i]} + ${B[i]} + nhớ ${c} = ${s} → ghi ${s%2}, nhớ ${s>>1}<br>`;r=(s%2)+r;c=s>>1}
+if(c){r='1'+r;h+='Còn nhớ 1 → viết thêm 1 ở đầu.<br>'}
+return h+`<b>Kết quả:</b> (${r})₂<br>Kiểm tra: ${iv(a)} + ${iv(b)} = ${iv(r)}`}
+function subS(a,b){const n=Math.max(a.length,b.length),A=a.padStart(n,'0'),B=b.padStart(n,'0');let br=0,r='',h=`<b>Quy tắc:</b> trừ từ phải sang trái. 0−0=0; 1−0=1; 1−1=0; 0−1=1 (mượn 1 từ cột bên trái). Cột trước đã mượn thì cột này phải trừ thêm 1.<br><b>Làm:</b> ${a} − ${b}<br>`;
+for(let i=n-1;i>=0;i--){const raw=+A[i]-+B[i]-br,nb=raw<0?1:0;h+=`${A[i]} − ${B[i]} − mượn ${br} = ${raw}${nb?` → âm nên mượn 1 (+2) được ${raw+2}, nhớ mượn 1`:''} → ghi ${raw+2*nb}<br>`;r=(raw+2*nb)+r;br=nb}
+return h+`<b>Kết quả:</b> (${strip(r)})₂<br>Kiểm tra: ${iv(a)} − ${iv(b)} = ${iv(r)}`}
+function comp2S(s){const o=[...s].map(x=>1-x).join(''),r=cp(s);
+return `<b>Công thức:</b> bù hai = bù một (đảo bit) + 1. Mẹo: giữ nguyên các bit từ phải sang đến hết bit 1 đầu tiên, rồi đảo các bit còn lại.<br><b>Làm:</b> A = ${s}<br>Bù một (đảo bit): ${o}<br>Cộng 1: ${o} + 1 = ${r}<br><b>Kết quả:</b> ${r}<br>Kiểm tra: ${iv(s)} + ${iv(r)} = ${iv(s)+iv(r)} = 2${sp(s.length)} (bỏ bit tràn, còn lại toàn 0)`}
+const divB=(n,b)=>{let h=`<b>Công thức:</b> chia ${n} cho ${b} lấy dư, lặp đến khi thương = 0, đọc dư từ dưới lên (dư ≥ 10 viết bằng chữ A–F).<br>`,s='',k=n;while(k>0){const r=k%b;h+=`${k} : ${b} = ${Math.floor(k/b)} dư ${r}${r>9?' ('+D[r]+')':''}<br>`;s=D[r]+s;k=Math.floor(k/b)}return h+`<b>Kết quả:</b> (${n})₁₀ = (${s})${SUB[b]}`};
+const reprS=n=>{const ab=Math.abs(n),m=ab.toString(2).padStart(8,'0');return `<b>Quy tắc (bù hai, 8 bit):</b> số dương: bit dấu 0, các bit còn lại là độ lớn. Số âm: bit dấu 1, lấy bù hai của số dương tương ứng.<br><b>Làm:</b> |${n}| = ${ab} = (${m})₂ (8 bit)<br>${n<0?`Số âm nên lấy bù hai của ${m}:<br>${comp2S(m)}`:`Số dương nên giữ nguyên: <b>${m}</b>`}`};
+const valS=s=>s[0]=='1'?`<b>Làm:</b> bit dấu = 1 → số âm. Lấy bù hai để tìm độ lớn:<br>${comp2S(s)}<br>Độ lớn = ${iv(cp(s))}. Vậy giá trị = <b>−${iv(cp(s))}</b>`:`Bit dấu = 0 → số dương, giá trị = ${iv(s)}`;
+const tsub=(a,b)=>{const A=a.toString(2).padStart(8,'0'),B=b.toString(2).padStart(8,'0'),nb=cp(B),sum=iv(A)+iv(nb),res=(sum%256).toString(2).padStart(8,'0');
+return `<b>Quy tắc:</b> A − B = A + (bù hai của B). Nếu có nhớ ra khỏi bit cao nhất thì bỏ bit đó, kết quả dương. Nếu không có nhớ thì kết quả âm (đang ở dạng bù hai).<br><b>Làm:</b> ${a} = ${A}; ${b} = ${B}<br>Bù hai của ${B}:<br>${comp2S(B)}<br>Cộng: ${A} + ${nb} = ${sum.toString(2)} → ${sum>255?'có nhớ, bỏ bit tràn':'không có nhớ'}<br><b>Kết quả 8 bit:</b> ${res} (= ${a-b})`};
+const exS=(v,n)=>`<b>Công thức:</b> số quá n của N = biểu diễn nhị phân (không dấu) của N + n.<br><b>Làm:</b> N + n = ${v} + ${n} = ${v+n}<br>${d2b(v+n)}<br>Đủ 8 bit: <b>${(v+n).toString(2).padStart(8,'0')}</b>`;
+const bcd=n=>[...String(n)].map(d=>(+d).toString(2).padStart(4,'0')).join('');
+const bcdS=n=>`<b>Quy tắc:</b> thay từng chữ số thập phân bằng 4 bit nhị phân tương đương.<br>${[...String(n)].map(d=>`${d} → ${(+d).toString(2).padStart(4,'0')}`).join('<br>')}<br><b>Kết quả:</b> ${bcd(n)}`;
+function bcdAdd(a,b){const A=String(a),B=String(b),n=Math.max(A.length,B.length),X=A.padStart(n,'0'),Y=B.padStart(n,'0');let c=0;const out=[];
+let h=`<b>Quy tắc:</b> đổi từng chữ số sang 4 bit BCD, cộng từng nhóm từ phải sang trái. Nhóm nào > 9 thì cộng thêm 0110 (6) để hiệu chỉnh, và nhớ 1 sang nhóm trái.<br><b>Làm:</b> ${a} = ${bcd(a)}; ${b} = ${bcd(b)}<br>`;
+for(let i=n-1;i>=0;i--){const s=+X[i]+ +Y[i]+c;if(s>9){h+=`${X[i]} + ${Y[i]} + nhớ ${c} = ${s} > 9 → cộng 0110 (+6) → ghi ${s-10}, nhớ 1<br>`;out.unshift(s-10);c=1}else{h+=`${X[i]} + ${Y[i]} + nhớ ${c} = ${s} → ghi ${s}, nhớ 0<br>`;out.unshift(s);c=0}}
+if(c)out.unshift(1);return h+`Kết quả thập phân ${out.join('')} → <b>${bcd(out.join(''))}</b>`}
+const normS=s=>{const[ip,fp='']=s.split('.'),t=ip.replace(/^0+/,'');let n,m;if(t){n=t.length-1;m=t.slice(1)+fp}else{const k=fp.indexOf('1');n=-(k+1);m=fp.slice(k+1)}return{n,m}};
+
+['10111,1101','101110,01101','101101,11101','101011,11010','1011110,101101','110011,110101'].forEach(p=>{const[a,b]=p.split(',');Q('Cộng trừ',`Tính ${C(a+' + '+b)} (nhị phân).`,(iv(a)+iv(b)).toString(2),addS(a,b))});
+['1011,0110','1010,0101','11001,1011','1011110,101101'].forEach(p=>{const[a,b]=p.split(',');Q('Cộng trừ',`Tính ${C(a+' − '+b)} (nhị phân).`,strip((iv(a)-iv(b)).toString(2)),subS(a,b))});
+['00101100','01010110','00110100','10010000','00001111'].forEach(s=>Q('Bù hai',`Tìm bù hai của ${C(s)} (8 bit).`,cp(s),comp2S(s)));
+[-12,-44,25].forEach(n=>Q('Bù hai',`Biểu diễn ${n} bằng mã bù hai 8 bit.`,((n+256)%256).toString(2).padStart(8,'0'),reprS(n)));
+['10110100','11110000'].forEach(s=>Q('Bù hai',`Giá trị thập phân của ${C(s)} (mã bù hai 8 bit) là bao nhiêu?`,iv(s)-256,valS(s)));
+[[13,6],[6,13]].forEach(([a,b])=>Q('Bù hai',`Tính ${a} − ${b} bằng cách cộng với bù hai (8 bit). Kết quả 8 bit là gì?`,(((a-b)%256)+256).toString(2).padStart(8,'0').slice(-8),tsub(a,b)));
+['101101','11101011','110101','110.01','1010.11','11101.1001','111001.11101'].forEach(s=>Q('Đổi cơ số',`Đổi ${C(s.replace('.',','))} (nhị phân) sang thập phân.`,P(s,2),b2d(s,2)));
+[198,245,33.25,0.6875,1.8125,13].forEach(x=>Q('Đổi cơ số',`Đổi ${cm(x)} (thập phân) sang nhị phân.`,F(x,2),d2b(x)));
+Q('Đổi cơ số','Đổi 156 (thập phân) sang hệ 16.','9C',divB(156,16));
+Q('Đổi cơ số','Đổi 255 (thập phân) sang hệ 16.','FF',divB(255,16));
+Q('Đổi cơ số',`Đổi ${C('3AF')} (hệ 16) sang thập phân.`,943,b2d('3AF',16));
+Q('Đổi cơ số',`Đổi ${C('1101111001100011')} (nhị phân) sang hệ 16.`,'DE63',grp('1101111001100011',4));
+Q('Đổi cơ số',`Đổi ${C('574,321')} (hệ 8) sang nhị phân.`,'101111100.011010001','<b>Quy tắc:</b> mỗi chữ số bát phân đổi thành đúng 3 bit.<br>5 = 101; 7 = 111; 4 = 100; dấu phẩy; 3 = 011; 2 = 010; 1 = 001<br><b>Kết quả:</b> (101111100,011010001)₂');
+[['1001','101'],['101110','1011']].forEach(([a,b])=>Q('Nhân',`Tính ${C(a+' × '+b)} (nhị phân).`,(iv(a)*iv(b)).toString(2),mul(a,b)));
+[['11011','101'],['101111','110'],['10011111','1100'],['11101','101']].forEach(([a,d])=>Q('Chia',`Tìm thương nguyên của ${C(a+' ÷ '+d)} (nhị phân). Số dư có trong lời giải.`,Math.floor(iv(a)/iv(d)).toString(2),div(a,d,0)));
+[209.8125,83.75,199.6875,-13.375,0.15625,6.125,-0.5].forEach(x=>Q('IEEE 754',`Biểu diễn ${C(cm(x))} theo IEEE 754 32 bit (viết liền 32 bit hoặc S E M cách nhau khoảng trắng).`,bits32(x),enc(x)));
+[40.5,-2.75,0.1875,150.25,-0.0625].forEach(x=>{const b=bits32(x);Q('IEEE 754',`Tìm giá trị thập phân của ${C(b[0]+' '+b.slice(1,9)+' '+b.slice(9))}.`,x,dec(b))});
+[[2,5],[15,30],[-10,127],[7,127]].forEach(([v,n])=>Q('Số quá n',`Biểu diễn ${v} theo số quá ${n} (mẫu 8 bit).`,(v+n).toString(2).padStart(8,'0'),exS(v,n)));
+Q('BCD','Biểu diễn 59 theo mã BCD.',bcd(59),bcdS(59));
+Q('BCD','Biểu diễn 1998 theo mã BCD.',bcd(1998),bcdS(1998));
+[[28,59],[47,36]].forEach(([a,b])=>Q('BCD',`Cộng ${a} + ${b} bằng mã BCD. Kết quả BCD sau hiệu chỉnh là gì?`,bcd(a+b),bcdAdd(a,b)));
+[[8,3],[10,4],[100,7]].forEach(([k,r])=>Q('Lượng thông tin',`Cần tối thiểu bao nhiêu bit để phân biệt ${k} trạng thái?`,r,`<b>Công thức:</b> I = log₂(N); nếu không tròn thì làm tròn lên.<br>I = log₂(${k}) = ${Math.log2(k).toFixed(3).replace('.',',')} → làm tròn lên = <b>${r}</b> bit.<br>Kiểm tra: 2${sp(r)} = ${2**r} ≥ ${k}${r>1?` và 2${sp(r-1)} = ${2**(r-1)} < ${k}`:''}`));
+['0.00011','0.011','1101.1','10.101'].forEach(s=>{const{n,m}=normS(s);Q('Chuẩn hóa',`Chuẩn hóa ${C(s.replace('.',','))} về dạng 1,xxx × 2ⁿ. Số mũ n bằng bao nhiêu?`,n,`<b>Quy tắc:</b> dời dấu phẩy để chỉ còn một chữ số 1 bên trái dấu phẩy. Dời sang phải k vị trí thì số mũ = −k, dời sang trái k vị trí thì số mũ = +k.<br><b>Làm:</b> (${s.replace('.',',')})₂: dời dấu phẩy sang ${n>=0?'trái':'phải'} ${Math.abs(n)} vị trí<br>= 1,${m||'0'} × 2${sp(n)}<br><b>Số mũ n = ${n}</b>`)});
+[[170,9],[170,10],[4567,9]].forEach(([x,r])=>{const n=String(x).length,b9=10**n-1-x;Q('Số bù',`Tìm số bù ${r} của ${x} trong hệ thập phân.`,r==9?b9:b9+1,`<b>Công thức:</b> bù 9 của N = (10ⁿ − 1) − N (n là số chữ số của N). Bù 10 = bù 9 + 1.<br><b>Làm:</b> N = ${x}, n = ${n}<br>Bù 9 = (10${sp(n)} − 1) − ${x} = ${10**n-1} − ${x} = ${b9}${r==10?`<br>Bù 10 = ${b9} + 1 = <b>${b9+1}</b>`:''}`)});
+const ord=['Lượng thông tin','Đổi cơ số','Cộng trừ','Nhân','Chia','Bù hai','Số bù','Số quá n','Chuẩn hóa','IEEE 754','BCD'];
+E.sort((a,b)=>ord.indexOf(a[0])-ord.indexOf(b[0]));
+})();
 const N=s=>{s=String(s).toUpperCase().replace(/\s+/g,'').replace(',','.').replace('−','-');
 if(s.length<=20){s=s.replace(/^(-?)0+(?=\d)/,'$1');if(s.includes('.'))s=s.replace(/0+$/,'').replace(/\.$/,'')}return s};
 const cats=['Tất cả',...new Set(E.map(e=>e[0]))];let cur='Tất cả';const done={};
@@ -338,13 +397,44 @@ function sel(){document.querySelectorAll('#pt .sw').forEach(b=>b.classList.toggl
 $('#psz').onchange=e=>{sz=+e.target.value};
 $('#pad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
 if(b.dataset.c){col=b.dataset.c;er=false;sel()}
-else if(b.dataset.m){const t=b.dataset.m=='t';pw.hidden=t;$('#pt').hidden=t;$('#tx').hidden=!t;document.querySelectorAll('.pm button').forEach(x=>x.classList.toggle('on',x===b));if(!t)fit()}
+else if(b.dataset.m){const t=b.dataset.m=='t';pw.hidden=t;$('#pt').hidden=t;$('#tx').hidden=!t;$('#tt').hidden=!t;if(!t)$('#sg').hidden=true;document.querySelectorAll('.pm button').forEach(x=>x.classList.toggle('on',x===b));if(!t)fit()}
 else if(b.id=='per'){er=!er;sel()}
 else if(b.id=='pun'){S.pop();redraw()}
 else if(b.id=='pcl'){S.length=0;redraw()}});
 $('#padt').onclick=()=>{padOn=!padOn;applySplit()};
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',applySplit));
 new ResizeObserver(fit).observe(pw);applySplit();
+})();
+/* Gợi ý kết quả khi gõ phép tính */
+(()=>{
+const tx=$('#tx'),sg=$('#sg'),pb=$('#pbase');let cur=null;
+const fd=v=>String(parseFloat(v.toPrecision(12)));
+function calc(s,B){s=s.replace(/\s+/g,'');const T=[];let i=0;
+while(i<s.length){const c=s[i],r=s.slice(i),m=r.match(/^[0-9A-Fa-f]+(?:[.,][0-9A-Fa-f]+)?/);
+if(m){let run=m[0].replace(',','.'),b=B,adv=m[0].length;const rest=r.slice(adv);
+if(/^[hH]/.test(rest)){b=16;adv++}else if(/^[oO]/.test(rest)){b=8;adv++}else if(B!=16&&run.length>1&&/[bBdD]$/.test(run)){b=/[bB]$/.test(run)?2:10;run=run.slice(0,-1)}
+const v=P(run,b);if(isNaN(v))return NaN;T.push({n:v});i+=adv;continue}
+const o=({'-':'−','*':'×','x':'×','X':'×','/':'÷'})[c]||c;
+if('+−×÷^()√'.includes(o)){T.push(o);i++;continue}return NaN}
+let p=0;const pk=()=>T[p],nx=()=>T[p++];
+const R=()=>{const t=nx();if(t&&typeof t=='object')return t.n;if(t=='('){const v=X();if(pk()==')')nx();return v}if(t=='√')return Math.sqrt(R());throw 1};
+const W=()=>{const b=R();if(pk()=='^'){nx();return Math.pow(b,U())}return b};
+const U=()=>{if(pk()=='−'){nx();return -U()}if(pk()=='+'){nx();return U()}return W()};
+const Tm=()=>{let v=U();while(pk()=='×'||pk()=='÷'){const o=nx(),r=U();v=o=='×'?v*r:v/r}return v};
+const X=()=>{let v=Tm();while(pk()=='+'||pk()=='−'){const o=nx(),r=Tm();v=o=='+'?v+r:v-r}return v};
+try{const v=X();return p<T.length?NaN:v}catch(_){return NaN}}
+function upd(){cur=null;const pos=tx.selectionStart,v=tx.value,ls=v.lastIndexOf('\n',pos-1)+1,line=v.slice(ls,pos),m=line.match(/([0-9A-Za-z.,()+\-−*\/×÷^√\s]+?)=\s*$/);
+if(m&&pos===tx.selectionEnd){const B=+pb.value;let ex=m[1].trim(),r=NaN;
+for(let k=0;k<ex.length;k++){if(k===0||/[0-9(√−\-]/.test(ex[k])){const x=calc(ex.slice(k),B);if(!isNaN(x)&&isFinite(x)){r=x;ex=ex.slice(k);break}}}
+if(!isNaN(r)&&/[+\-−*\/×÷^√xX]/.test(ex.replace(/^[-−]/,''))){cur=B==10?fd(r):F(r,B,12);
+sg.innerHTML=`💡 <b>${ex} = ${cur}</b> <span>DEC ${fd(r)} | BIN ${F(r,2,12)} | HEX ${F(r,16,8)}</span> <button>Chèn (Tab)</button>`}}
+sg.hidden=cur==null}
+function ins(){if(cur==null)return;const pos=tx.selectionStart;tx.setRangeText(cur,pos,pos,'end');cur=null;sg.hidden=true;tx.focus()}
+tx.addEventListener('input',upd);
+['keyup','click'].forEach(ev=>tx.addEventListener(ev,e=>{if(e.key=='Tab'||e.key=='Escape')return;upd()}));
+tx.addEventListener('keydown',e=>{if(e.key=='Tab'&&cur!=null){e.preventDefault();ins()}else if(e.key=='Escape'){cur=null;sg.hidden=true}});
+sg.addEventListener('pointerdown',e=>{e.preventDefault();ins()});
+pb.onchange=upd;
 })();
 </script>
 </body>
