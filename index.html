@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ôn luyện cơ số &amp; IEEE 754</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1d2433;--mu:#667085;--ac:#3b5bdb;--acb:#e7ecff;--ok:#2b8a3e;--okb:#e6f6ea;--er:#c92a2a;--erb:#fdeaea;--bd:#dfe3ec;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1c212c;--tx:#e8ebf2;--mu:#98a2b3;--ac:#8da2ff;--acb:#262e4d;--ok:#69db7c;--okb:#1b3324;--er:#ff8787;--erb:#3a1d1d;--bd:#2e3544;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12151c;--card:#1c212c;--tx:#e8ebf2;--mu:#98a2b3;--ac:#8da2ff;--acb:#262e4d;--ok:#69db7c;--okb:#1b3324;--er:#ff8787;--erb:#3a1d1d;--bd:#2e3544;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:8px 0 2px}
+.sub{color:var(--mu);margin:0 0 14px}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab,.chip,button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 14px}
+.tab.on,.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+:root[data-theme="dark"] .tab.on,:root[data-theme="dark"] .chip.on{color:#12151c}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tab.on,:root:not([data-theme="light"]) .chip.on{color:#12151c}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{padding:5px 12px;font-size:.9rem}
+.score{color:var(--mu);margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:1.05rem}
+.q{margin:0 0 8px}
+.tag{font-size:.75rem;background:var(--acb);color:var(--ac);padding:2px 8px;border-radius:99px;margin-right:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{font:inherit;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;min-width:0}
+input.w{flex:1 1 200px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--acb);padding:1px 5px;border-radius:5px;word-break:break-all}
+.res{margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
+.res.ok{display:block;background:var(--okb);color:var(--ok)}
+.res.er{display:block;background:var(--erb);color:var(--er)}
+.sol{display:none;margin-top:8px;padding:10px;border-left:3px solid var(--ac);background:var(--acb);border-radius:6px}
+.sol.show{display:block}
+.out{margin-top:10px;display:grid;gap:4px}
+.out div{display:flex;gap:8px;flex-wrap:wrap}
+.out b{min-width:92px;color:var(--mu);font-weight:500}
+.hint{color:var(--mu);font-size:.85rem;margin:4px 0 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>Ôn luyện cơ số &amp; IEEE 754</h1>
+<p class="sub">Làm bài ở tab Bài tập, dùng tab Máy tính để kiểm tra từng bước.</p>
+<div class="tabs"><button class="tab on" data-t="ex">Bài tập</button><button class="tab" data-t="calc">Máy tính</button></div>
+
+<section id="ex">
+<div class="chips" id="chips"></div>
+<div class="score" id="score"></div>
+<div id="list"></div>
+</section>
+
+<section id="calc" hidden>
+<div class="card">
+<h3>1. Đổi cơ số</h3>
+<div class="row"><input class="w" id="c1v" placeholder="Ví dụ: 1011,011" inputmode="text">
+<select id="c1b"><option value="10">Thập phân</option><option value="2">Nhị phân</option><option value="8">Bát phân</option><option value="16">Hex</option></select></div>
+<div class="out" id="c1o"></div>
+<p class="hint">Hỗ trợ số âm và phần sau dấu phẩy (dấu , hoặc .).</p>
+</div>
+
+<div class="card">
+<h3>2. Cộng, trừ, nhân, chia</h3>
+<div class="row"><input class="w" id="c2a" placeholder="Số thứ nhất">
+<select id="c2o"><option>+</option><option>−</option><option>×</option><option>÷</option></select>
+<input class="w" id="c2b" placeholder="Số thứ hai">
+<select id="c2s"><option value="2">Nhị phân</option><option value="10">Thập phân</option><option value="8">Bát phân</option><option value="16">Hex</option></select></div>
+<div class="out" id="c2o2"></div>
+<p class="hint">Phép chia sẽ cho thêm thương nguyên và số dư.</p>
+</div>
+
+<div class="card">
+<h3>3. IEEE 754 (32 bit)</h3>
+<div class="row"><input class="w" id="c3d" placeholder="Số thập phân, ví dụ: −6,25">
+<button id="c3e">Đổi sang S, E, M</button></div>
+<div class="row" style="margin-top:8px"><input class="w" id="c3b" placeholder="Chuỗi 32 bit (có thể có khoảng trắng)">
+<button id="c3x">Đọc giá trị</button></div>
+<div class="out" id="c3o"></div>
+<p class="hint">Chuỗi ngắn hơn 32 bit sẽ được bù số 0 vào bên phải.</p>
+</div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),D='0123456789ABCDEF';
+const P=(s,b)=>{s=String(s).trim().toUpperCase().replace(',','.').replace('−','-');let n=false;if(s[0]=='-'){n=true;s=s.slice(1)}
+if(!s.replace('.','')||(s.match(/\./g)||[]).length>1)return NaN;const[i,f='']=s.split('.');let v=0;
+for(const c of i){const d=D.indexOf(c);if(d<0||d>=b)return NaN;v=v*b+d}
+let p=1/b;for(const c of f){const d=D.indexOf(c);if(d<0||d>=b)return NaN;v+=d*p;p/=b}return n?-v:v};
+const F=(v,b,m=20)=>{const n=v<0;v=Math.abs(v);const i=Math.floor(v);let f=v-i,s=i.toString(b).toUpperCase();
+if(f>0){s+='.';let k=0;while(f>0&&k<m){f*=b;const d=Math.floor(f);s+=D[d];f-=d;k++}if(f>0)s+='…'}return(n?'-':'')+s};
+const row=(a,b)=>`<div><b>${a}</b><code>${b}</code></div>`;
+
+/* Tabs */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+$('#ex').hidden=t.dataset.t!=='ex';$('#calc').hidden=t.dataset.t!=='calc'});
+
+/* Exercises */
+const E=[
+['Đổi cơ số','Đổi <code>100111</code> (nhị phân) sang thập phân.','39','32 + 4 + 2 + 1 = 39.'],
+['Đổi cơ số','Đổi <code>11001011</code> (nhị phân) sang thập phân.','203','128 + 64 + 8 + 2 + 1 = 203.'],
+['Đổi cơ số','Đổi <code>1011,011</code> (nhị phân) sang thập phân.','11.375','Phần nguyên 1011 = 11. Phần thập phân 0,011 = 0,25 + 0,125 = 0,375. Kết quả 11,375.'],
+['Đổi cơ số','Đổi 93 (thập phân) sang nhị phân.','1011101','Chia 2 lấy dư, đọc từ dưới lên: 93→46 dư 1; 46→23 dư 0; 23→11 dư 1; 11→5 dư 1; 5→2 dư 1; 2→1 dư 0; 1→0 dư 1. Kết quả 1011101.'],
+['Đổi cơ số','Đổi 0,375 (thập phân) sang nhị phân.','0.011','Nhân 2 lấy phần nguyên: 0,375×2 = 0,75 → 0; 0,75×2 = 1,5 → 1; 0,5×2 = 1,0 → 1. Kết quả 0,011.'],
+['Đổi cơ số','Đổi 18,625 (thập phân) sang nhị phân.','10010.101','18 = 10010. 0,625×2 = 1,25 → 1; 0,25×2 = 0,5 → 0; 0,5×2 = 1 → 1. Kết quả 10010,101.'],
+['Đổi cơ số','Đổi <code>10111101</code> (nhị phân) sang hệ 16.','BD','Nhóm 4 bit từ phải: 1011 = B, 1101 = D.'],
+['Đổi cơ số','Đổi <code>10111101</code> (nhị phân) sang hệ 8.','275','Nhóm 3 bit từ phải: 10 = 2, 111 = 7, 101 = 5.'],
+['Đổi cơ số','Đổi <code>2F5</code> (hệ 16) sang thập phân.','757','2×256 + 15×16 + 5 = 512 + 240 + 5 = 757.'],
+['Đổi cơ số','Đổi <code>365</code> (hệ 8) sang thập phân.','245','3×64 + 6×8 + 5 = 192 + 48 + 5 = 245.'],
+['Nhân','Tính <code>1101 × 101</code> (nhị phân).','1000001','13 × 5 = 65. Cộng 1101 và 110100 (dịch trái 2) được 1000001.'],
+['Nhân','Tính <code>1110 × 111</code> (nhị phân).','1100010','14 × 7 = 98. Cộng 1110 + 11100 + 111000 = 1100010.'],
+['Nhân','Tính <code>11,01 × 1,1</code> (nhị phân).','100.111','Bỏ dấu phẩy: 1101 × 11 = 100111. Có 2 + 1 = 3 chữ số sau dấu phẩy nên kết quả 100,111 (= 4,875).'],
+['Nhân','Tính <code>101,1 × 10,1</code> (nhị phân).','1101.11','1011 × 101 = 110111. Có 1 + 1 = 2 chữ số sau dấu phẩy nên kết quả 1101,11 (= 13,75).'],
+['Chia','Tính <code>101101 ÷ 101</code> (nhị phân).','1001','45 ÷ 5 = 9 = 1001, dư 0.'],
+['Chia','Tính <code>11111 ÷ 100</code> (nhị phân), lấy cả phần thập phân.','111.11','31 ÷ 4 = 7 dư 3. Chia tiếp: 3 → 30 → 7,75 = 111,11.'],
+['Chia','Tính <code>1001 ÷ 11</code> (nhị phân).','11','9 ÷ 3 = 3 = 11, dư 0.'],
+['Chia','Tính <code>1111 ÷ 110</code> (nhị phân), lấy cả phần thập phân.','10.1','15 ÷ 6 = 2,5 = 10,1.'],
+['IEEE 754','Viết 20,75 dưới dạng 32 bit (S E M).','01000001101001100000000000000000','20,75 = 10100,11 = 1,010011 × 2⁴. S = 0, E = 4 + 127 = 131 = 10000011, M = 010011 + 17 số 0.<br>Đáp án: <code>0 10000011 01001100000000000000000</code>'],
+['IEEE 754','Viết −0,375 dưới dạng 32 bit (S E M).','10111110110000000000000000000000','0,375 = 0,011 = 1,1 × 2⁻². S = 1, E = −2 + 127 = 125 = 01111101, M = 1 + 22 số 0.<br>Đáp án: <code>1 01111101 10000000000000000000000</code>'],
+['IEEE 754','Viết 100,5 dưới dạng 32 bit (S E M).','01000010110010010000000000000000','100,5 = 1100100,1 = 1,1001001 × 2⁶. S = 0, E = 6 + 127 = 133 = 10000101, M = 1001001 + 16 số 0.<br>Đáp án: <code>0 10000101 10010010000000000000000</code>'],
+['IEEE 754','Tìm giá trị của <code>1 10000101 01100000000000000000000</code>.','-88','S = 1 (âm). E = 133 nên số mũ = 6. 1,011 × 2⁶ = 1011000 = 88. Kết quả −88.'],
+['IEEE 754','Tìm giá trị của <code>0 01111110 10000000000000000000000</code>.','0.75','S = 0. E = 126 nên số mũ = −1. 1,1 × 2⁻¹ = 0,11 = 0,75.'],
+['IEEE 754','Tìm giá trị của <code>1 10000010 11010000000000000000000</code>.','-14.5','S = 1. E = 130 nên số mũ = 3. 1,1101 × 2³ = 1110,1 = 14,5. Kết quả −14,5.']
+];
+const N=s=>{s=String(s).toUpperCase().replace(/\s+/g,'').replace(',','.').replace('−','-');
+if(s.length<=20){s=s.replace(/^(-?)0+(?=\d)/,'$1');if(s.includes('.'))s=s.replace(/0+$/,'').replace(/\.$/,'')}return s};
+const cats=['Tất cả',...new Set(E.map(e=>e[0]))];let cur='Tất cả';const done={};
+function draw(){
+$('#chips').innerHTML=cats.map(c=>`<button class="chip ${c===cur?'on':''}" data-c="${c}">${c}</button>`).join('');
+$('#chips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{cur=b.dataset.c;draw()});
+$('#score').textContent=`Đã làm đúng ${Object.keys(done).length}/${E.length} bài`;
+$('#list').innerHTML=E.map((e,i)=>e[0]===cur||cur==='Tất cả'?`<div class="card"><p class="q"><span class="tag">${e[0]}</span>Bài ${i+1}. ${e[1]}</p>
+<div class="row"><input class="w" id="a${i}" placeholder="Đáp án của bạn" autocomplete="off"><button data-k="${i}">Kiểm tra</button><button data-s="${i}">Lời giải</button></div>
+<div class="res" id="r${i}"></div><div class="sol" id="s${i}">${e[3]}</div></div>`:'').join('');
+$('#list').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>chk(+b.dataset.k));
+$('#list').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>$('#s'+b.dataset.s).classList.toggle('show'));
+$('#list').querySelectorAll('input').forEach(x=>x.onkeydown=e=>{if(e.key==='Enter')chk(+x.id.slice(1))});
+Object.keys(done).forEach(i=>{const r=$('#r'+i);if(r){r.className='res ok';r.textContent='Chính xác!'}})}
+function chk(i){const v=$('#a'+i).value,r=$('#r'+i);if(!v.trim())return;
+if(N(v)===N(E[i][2])){done[i]=1;r.className='res ok';r.textContent='Chính xác!';$('#score').textContent=`Đã làm đúng ${Object.keys(done).length}/${E.length} bài`}
+else{r.className='res er';r.textContent='Chưa đúng, thử lại hoặc xem lời giải nhé.'}}
+draw();
+
+/* Calc 1 */
+function c1(){const v=P($('#c1v').value,+$('#c1b').value);
+$('#c1o').innerHTML=isNaN(v)?($('#c1v').value?'<div>Số không hợp lệ với cơ số đã chọn.</div>':''):
+row('Thập phân',F(v,10))+row('Nhị phân',F(v,2))+row('Bát phân',F(v,8))+row('Hex',F(v,16))}
+['input','change'].forEach(e=>{$('#c1v').addEventListener(e,c1);$('#c1b').addEventListener(e,c1)});
+
+/* Calc 2 */
+function c2(){const b=+$('#c2s').value,a=P($('#c2a').value,b),c=P($('#c2b').value,b),o=$('#c2o').value,out=$('#c2o2');
+if(!$('#c2a').value||!$('#c2b').value){out.innerHTML='';return}
+if(isNaN(a)||isNaN(c)){out.innerHTML='<div>Số không hợp lệ với cơ số đã chọn.</div>';return}
+let r,x='';if(o==='+')r=a+c;else if(o==='−')r=a-c;else if(o==='×')r=a*c;else{
+if(c===0){out.innerHTML='<div>Không chia được cho 0.</div>';return}r=a/c;
+if(Number.isInteger(a)&&Number.isInteger(c)){const q=Math.trunc(a/c);x=row('Thương nguyên',F(q,b))+row('Số dư',F(a-q*c,b))}}
+out.innerHTML=row('Kết quả',F(r,b))+row('Thập phân',F(r,10))+x}
+['input','change'].forEach(e=>['#c2a','#c2b','#c2o','#c2s'].forEach(s=>$(s).addEventListener(e,c2)));
+
+/* Calc 3 */
+function show(bits){const S=bits[0],E=bits.slice(1,9),M=bits.slice(9),e=parseInt(E,2);
+const mant=M.replace(/0+$/,''),n=e-127;const dv=new DataView(new ArrayBuffer(4));dv.setUint32(0,parseInt(bits,2)>>>0);
+const val=dv.getFloat32(0);
+$('#c3o').innerHTML=row('S',S+(S==='1'?' (số âm)':' (số dương)'))+row('E + 127',`${E} = ${e}`)+row('E (số mũ)',`${e} − 127 = ${n}`)+row('M (23 bit)',M)+
+row('Dạng chuẩn',`${S==='1'?'−':''}1${mant?','+mant:''} × 2^${n}`)+row('Chuỗi 32 bit',`${S} ${E} ${M}`)+row('Giá trị',String(val))}
+$('#c3e').onclick=()=>{const v=P($('#c3d').value,10);if(isNaN(v)){$('#c3o').innerHTML='<div>Số không hợp lệ.</div>';return}
+const dv=new DataView(new ArrayBuffer(4));dv.setFloat32(0,v);show(dv.getUint32(0).toString(2).padStart(32,'0'))};
+$('#c3x').onclick=()=>{let s=$('#c3b').value.replace(/\s+/g,'');
+if(!/^[01]+$/.test(s)||s.length>32){$('#c3o').innerHTML='<div>Chuỗi bit không hợp lệ (tối đa 32 bit, chỉ gồm 0 và 1).</div>';return}
+show(s.padEnd(32,'0'))};
+</script>
+</body>
+</html>
