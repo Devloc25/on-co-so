@@ -60,7 +60,24 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--acb);pad
 .dock .cz{max-width:none;padding:10px}
 .dock .cz button{padding:8px 0;font-size:.95rem}
 .dock .cd{min-height:84px}.dock .cr{font-size:1.5rem}
-@media(min-width:900px){body.dk main{margin:0 316px 0 auto}}
+.padbar{margin-bottom:10px}
+.split.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.lp{min-width:0}
+.pad{display:none;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:10px;min-height:0}
+.split.on .pad{display:flex;order:0;position:sticky;top:12px;height:calc(100vh - 24px);z-index:5}
+body.sp main{max-width:1400px}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pm{display:flex;gap:4px}
+.pm button,.pt button{padding:4px 10px;font-size:.85rem;border-radius:8px}
+.pm button.on,.pt button.on{background:var(--ac);color:var(--card);border-color:var(--ac)}
+.pt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pt select{padding:4px 6px;font-size:.85rem}
+.pt button.sw{width:24px;height:24px;padding:0;border-radius:50%}
+.pt button.sw.on{outline:3px solid var(--ac);outline-offset:2px}
+.pw{position:relative;flex:1;min-height:0;border-radius:10px;border:1px solid var(--bd);background-color:var(--card);background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:24px 24px;overflow:hidden}
+.pw canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#tx{flex:1;min-height:0;width:100%;resize:none;font:15px/1.6 ui-monospace,Menlo,Consolas,monospace;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.dockt{touch-action:none}
 </style>
 </head>
 <body>
@@ -70,9 +87,20 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--acb);pad
 <div class="tabs"><button class="tab on" data-t="ex">Bài tập</button><button class="tab" data-t="calc">Công cụ cơ số</button></div>
 
 <section id="ex">
+<div class="split" id="split"><div class="lp">
+<div class="padbar"><button id="padt" class="chip">📝 Trang nháp</button></div>
 <div class="chips" id="chips"></div>
 <div class="score" id="score"></div>
 <div id="list"></div>
+</div>
+<aside class="pad" id="pad">
+<div class="ph"><b>Trang nháp</b><div class="pm"><button class="on" data-m="d">Viết tay</button><button data-m="t">Gõ chữ</button></div></div>
+<div class="pt" id="pt"><button class="sw on" data-c="ink" style="background:var(--tx)" aria-label="Bút đen"></button><button class="sw" data-c="#3b82f6" style="background:#3b82f6" aria-label="Bút xanh"></button><button class="sw" data-c="#ef4444" style="background:#ef4444" aria-label="Bút đỏ"></button>
+<select id="psz"><option value="2">Mảnh</option><option value="4" selected>Vừa</option><option value="8">Đậm</option></select>
+<button id="per">Tẩy</button><button id="pun">Hoàn tác</button><button id="pcl">Xóa hết</button></div>
+<div class="pw" id="pw"><canvas id="cv"></canvas></div>
+<textarea id="tx" hidden placeholder="Gõ nháp ở đây..."></textarea>
+</aside></div>
 </section>
 
 <section id="calc" hidden>
@@ -280,13 +308,43 @@ document.querySelector('.cz').addEventListener('click',e=>{const b=e.target.clos
 document.addEventListener('keydown',e=>{if(!calcActive()||/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;
 const m={'-':'−','*':'×','/':'÷','Enter':'=','Backspace':'DEL','Escape':'AC'};let k=m[e.key]||(e.key.length==1?e.key.toUpperCase():'');if(!k)return;
 const ok=['=','DEL','AC','+','−','×','÷','^','(',')','.'].includes(k)||(D.includes(k)&&D.indexOf(k)<base);if(!ok)return;e.preventDefault();press(k)});
-let collapsed=innerWidth<900;
+let collapsed=true;
 function calcActive(){return !$('#dock').hidden&&!collapsed}
 function sync(){const d=!$('#dock').hidden;$('#dockbody').hidden=collapsed;$('#dockt').textContent='🧮 Máy tính '+(collapsed?'▴':'▾');document.body.classList.toggle('dk',d&&!collapsed)}
 function place(){sync()}
-$('#dockt').onclick=()=>{collapsed=!collapsed;sync()};
+{let dr=null;const dk=$('#dock'),t=$('#dockt');
+t.addEventListener('pointerdown',e=>{const r=dk.getBoundingClientRect();dr={x:e.clientX,y:e.clientY,l:r.left,t:r.top,m:false};t.setPointerCapture(e.pointerId)});
+t.addEventListener('pointermove',e=>{if(!dr)return;const dx=e.clientX-dr.x,dy=e.clientY-dr.y;if(Math.abs(dx)+Math.abs(dy)>6)dr.m=true;
+if(dr.m){dk.style.right='auto';dk.style.bottom='auto';dk.style.left=Math.max(0,Math.min(innerWidth-dk.offsetWidth,dr.l+dx))+'px';dk.style.top=Math.max(0,Math.min(innerHeight-dk.offsetHeight,dr.t+dy))+'px'}});
+t.addEventListener('pointerup',()=>{if(dr&&!dr.m){collapsed=!collapsed;sync()}dr=null})}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',place));
 setBase(10);place();
+})();
+/* Trang nháp */
+(()=>{
+const sp=$('#split'),cv=$('#cv'),ctx=cv.getContext('2d'),pw=$('#pw'),S=[];
+let padOn=innerWidth>=600,col='ink',sz=4,er=false,cur=null,W=0,H=0,dpr=1;
+const ink=()=>getComputedStyle(document.documentElement).getPropertyValue('--tx').trim()||'#000';
+function drawS(s){ctx.globalCompositeOperation=s.e?'destination-out':'source-over';ctx.strokeStyle=s.e?'#000':(s.c=='ink'?ink():s.c);ctx.lineWidth=s.e?s.w*5:s.w;ctx.lineCap=ctx.lineJoin='round';
+ctx.beginPath();s.p.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));if(s.p.length==1)ctx.lineTo(s.p[0][0]+.01,s.p[0][1]);ctx.stroke()}
+function redraw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);S.forEach(drawS)}
+function fit(){const r=pw.getBoundingClientRect();if(!r.width||!r.height)return;dpr=devicePixelRatio||1;W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);redraw()}
+function applySplit(){sp.classList.toggle('on',padOn);document.body.classList.toggle('sp',padOn&&!$('#ex').hidden);$('#padt').classList.toggle('on',padOn);fit()}
+const pt=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);cur={c:col,w:sz,e:er,p:[pt(e)]};S.push(cur);drawS(cur)});
+cv.addEventListener('pointermove',e=>{if(!cur)return;cur.p.push(pt(e));drawS({...cur,p:cur.p.slice(-2)})});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{cur=null}));
+function sel(){document.querySelectorAll('#pt .sw').forEach(b=>b.classList.toggle('on',!er&&b.dataset.c==col));$('#per').classList.toggle('on',er)}
+$('#psz').onchange=e=>{sz=+e.target.value};
+$('#pad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+if(b.dataset.c){col=b.dataset.c;er=false;sel()}
+else if(b.dataset.m){const t=b.dataset.m=='t';pw.hidden=t;$('#pt').hidden=t;$('#tx').hidden=!t;document.querySelectorAll('.pm button').forEach(x=>x.classList.toggle('on',x===b));if(!t)fit()}
+else if(b.id=='per'){er=!er;sel()}
+else if(b.id=='pun'){S.pop();redraw()}
+else if(b.id=='pcl'){S.length=0;redraw()}});
+$('#padt').onclick=()=>{padOn=!padOn;applySplit()};
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',applySplit));
+new ResizeObserver(fit).observe(pw);applySplit();
 })();
 </script>
 </body>
